@@ -1,0 +1,76 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Add the required kernel modules modules
+      modprobe:
+        name: "{{item}}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+    
+    - name: Set sysctl parameters
+      sysctl:
+        name: "{{item}}"
+        state: present
+        value: 1
+        reload: True
+      loop:
+        - net.bridge.bridge-nf-call-iptables
+        - net.ipv4.ip_forward
+        - net.bridge.bridge-nf-call-ip6tables
+
+    - name: Add the cri-o repo
+      lineinfile:
+        path: /etc/apt/sources.list.d/cri-0.list
+        line: deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.20/xUbuntu_18.04/  /
+        create: yes
+
+    - name: Add the libcontainer repo
+      lineinfile:
+        path: /etc/apt/sources.list.d/libcontainer.list
+        line: deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_18.04/ /
+        create: yes
+
+    - name: Add the kubernetes repo
+      lineinfile:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        line: deb  http://apt.kubernetes.io/  kubernetes-xenial  main
+        create: yes
+
+
+    - name: Add an Apt signing key for the repos
+      apt_key:
+        url: "{{item}}"
+        state: present
+      loop:
+        - http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.21:/1.21.0/xUbuntu_18.04/Release.key
+        - https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_18.04/Release.key
+        - https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+    
+    - name: Install the required packages on master
+      apt:
+        name: "{{item}}"
+        state: present
+        update_cache: True
+      loop:
+        - cri-o
+        - cri-o-runc  
+        - kubelet=1.20.10-00
+        - kubectl=1.20.10-00
+        - kubeadm=1.20.10-00
+
+    - name: Enable and start cri-o
+      service:
+        name: cri-o
+        enabled: True
+        state: started
+    
+    - name: Get the solutions dir
+      get_url:
+        url: https://training.linuxfoundation.org/cm/LFS258/LFS258_V2021-08-02_SOLUTIONS.tar.xz
+        dest: /home/vagrant/LFS258.tar.xz
+        url_username: 
+        url_password: 

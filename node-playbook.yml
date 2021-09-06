@@ -1,0 +1,72 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Add the required kernel modules modules
+      modprobe:
+        name: "{{item}}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+    
+    - name: Set sysctl parameters
+      sysctl:
+        name: "{{item}}"
+        state: present
+        value: 1
+        reload: True
+      loop:
+        - net.bridge.bridge-nf-call-iptables
+        - net.ipv4.ip_forward
+        - net.bridge.bridge-nf-call-ip6tables
+    
+    - name: Download sources list for cri-0
+      - name: Download sources list for cri-o
+        get_url:
+          url: http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.21:/1.21.0/xUbuntu_18.04/Sources
+          dest: /etc/apt/sources.list.d/cri-0.list
+
+    - name: Add an Apt signing key for cri-0
+      apt_key:
+        url: http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.21:/1.21.0/xUbuntu_18.04/Release.key
+        state: present
+    
+    - name: Download sources list for cri-0
+      - name: Download sources list for libcontainer
+        get_url:
+          url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_18.04/Sources
+          dest: /etc/apt/sources.list.d/libcontainer.list
+
+    - name: Add an Apt signing key for libcontainer
+      apt_key:
+        url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_18.04/Release.key
+        state: present
+
+    - name: Add the kubernetes repo
+      lineinfile:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        line: deb  http://apt.kubernetes.io/  kubernetes-xenial  main
+        create: yes
+    
+    - name: Add an Apt signing key for kubernetes repo
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Install the required packages
+      package:
+        name: "{{item}}"
+        state: present
+      loop:
+        - cri-o
+        - cri-o-runc  
+        - kubeadm=1.20.1-00
+        - kubelet=1.20.1-00
+        - kubelet=1.20.1-00
+
+    - name: Enable and start cri-o
+      service:
+        name: cri-o
+        enabled: True
+        state: started
