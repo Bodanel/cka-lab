@@ -1,5 +1,5 @@
 WORKER_NODES_NUMBER = 1
-IMAGE_NAME = "generic/ubuntu1804"
+IMAGE_NAME = "centos/8"
 
 
 Vagrant.configure("2") do |config|
@@ -19,8 +19,7 @@ Vagrant.configure("2") do |config|
     
     master.vm.box = IMAGE_NAME
     master.vm.hostname = "master"
-    master.vm.network "private_network", ip: "192.168.122.10", libvirt__network_name: "default", libvirt__host_ip: "192.168.122.1"
-
+  #  master.vm.network "private_network", ip: "192.168.122.10", libvirt__network_name: "default", libvirt__host_ip: "192.168.122.1"
     master.vm.provision "ansible" do |ansible|
       ansible.playbook = "master-playbook.yaml"
       ansible.extra_vars = { node_ip: "192.168.122.10", }
@@ -33,12 +32,11 @@ Vagrant.configure("2") do |config|
 
       node.vm.box = IMAGE_NAME
       node.vm.hostname = "worker-#{i}"
-      node.vm.network "private_network", ip: "192.168.122.#{i + 10}", libvirt__network_name: "default", libvirt__host_ip: "192.168.122.1"
+    #  node.vm.network "private_network", ip: "192.168.122.#{i + 10}", libvirt__network_name: "default", libvirt__host_ip: "192.168.122.1"
 
       node.vm.provision "ansible" do |ansible|
         ansible.playbook = "node-playbook.yaml"
-        ansible.extra_vars = { node_ip: "192.168.122.#{i + 10}",
-                               kubelet_file: "worker-#{i}.conf"}
+        ansible.extra_vars = { node_ip: "192.168.122.#{i + 10}",}
       end
     end
   end
